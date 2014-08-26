@@ -174,7 +174,6 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 									fromstkloc,
 									freightcost,
 									quotation,
-									area,
 									deliverydate,
 									quotedate,
 									confirmeddate)
@@ -200,7 +199,6 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 									'" . $Location ."',
 									'" . $FreightCost ."',
 									'" . $Quotation ."',
-									'" . $Area ."',
 									'" . $myrow['date_modified'] . "',
 									'" . $myrow['date_modified'] . "',
 									'" . $myrow['date_modified'] . "')";
