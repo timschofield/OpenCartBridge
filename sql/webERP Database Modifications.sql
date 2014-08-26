@@ -74,13 +74,6 @@ ALTER TABLE  `relateditems`
 	ADD  `date_created` DATETIME NOT NULL ,
 	ADD  `date_updated` TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL;
 
-CREATE TRIGGER stockmaster_creation_timestamp BEFORE INSERT ON stockmaster 
+CREATE TRIGGER relateditems_creation_timestamp BEFORE INSERT ON relateditems 
 FOR EACH ROW
 SET NEW.date_created = NOW();	
-
-/* FOR TESTING PURPOSES ONLY WHILE DEVELOPING ... DELETE ON FINAL RELEASE*/
-UPDATE config
-	SET confvalue = '0000-00-00 00:00:00'
-	WHERE confname = 'OpenCartToWeberp_LastRun' 
-		OR confname = 'WeberpToOpenCartDaily_LastRun'
-		OR confname = 'WeberpToOpenCartHourly_LastRun';
