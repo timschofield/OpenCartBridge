@@ -2,6 +2,7 @@
 
 function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $EmailText=''){
 	$begintime = time_start();
+	$TimeDifference = Get_SQL_to_PHP_time_difference($db);
 
 	// connect to opencart DB
 	DB_Txn_Begin($db);
@@ -9,13 +10,13 @@ function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $Emai
 	// check last time we run this script, so we know which records need to update from OC to webERP
 	$LastTimeRun = CheckLastTimeRun('OpenCartToWeberp', $db);
 	if ($ShowMessages){
-		prnMsg('This script was last run on: ' . $LastTimeRun . ' Server time difference: ' . SERVER_TO_LOCAL_TIME_DIFFERENCE,'success');
-		prnMsg('Server time now: ' . GetServerTimeNow(SERVER_TO_LOCAL_TIME_DIFFERENCE) ,'success');
+		prnMsg('This script was last run on: ' . $LastTimeRun . ' Server time difference: ' . $TimeDifference,'success');
+		prnMsg('Server time now: ' . GetServerTimeNow($TimeDifference) ,'success');
 	}
 	if ($EmailText!=''){
 		$EmailText = $EmailText . 'OpenCart to webERP Sync was last run on: ' . $LastTimeRun .  "\n\n" . 
-					'Server time difference: ' . SERVER_TO_LOCAL_TIME_DIFFERENCE . "\n\n" .
-					'Server time now: ' . GetServerTimeNow(SERVER_TO_LOCAL_TIME_DIFFERENCE) . "\n\n";
+					'Server time difference: ' . $TimeDifference . "\n\n" .
+					'Server time now: ' . GetServerTimeNow($TimeDifference) . "\n\n";
 	}
 	// update order information
 	$EmailText = SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
@@ -33,7 +34,7 @@ function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $Emai
 }
 
 function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText=''){
-	$ServerNow = GetServerTimeNow(SERVER_TO_LOCAL_TIME_DIFFERENCE);
+	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
 	$Today = date('Y-m-d');
 
 	if ($EmailText !=''){
@@ -174,6 +175,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 									fromstkloc,
 									freightcost,
 									quotation,
+									area,
 									deliverydate,
 									quotedate,
 									confirmeddate)
@@ -199,6 +201,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 									'" . $Location ."',
 									'" . $FreightCost ."',
 									'" . $Quotation ."',
+									'" . $Area ."',
 									'" . $myrow['date_modified'] . "',
 									'" . $myrow['date_modified'] . "',
 									'" . $myrow['date_modified'] . "')";
@@ -444,7 +447,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 }
 
 function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText=''){
-	$ServerNow = GetServerTimeNow(SERVER_TO_LOCAL_TIME_DIFFERENCE);
+	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
 	$Today = date('Y-m-d');
 
 	if ($EmailText !=''){

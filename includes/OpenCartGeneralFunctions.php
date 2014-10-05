@@ -1,5 +1,27 @@
 <?php
 
+function Get_SQL_to_PHP_time_difference($db) {
+	// Based on http://stackoverflow.com/questions/3108591/calculate-number-of-hours-between-2-dates-in-php
+    $NowPHP = new DateTime();
+
+	$SQL = "SELECT NOW()";
+	$result = DB_query($SQL,$db);
+	$Row = DB_fetch_row($result);
+    $NowSQL = new DateTime($Row[0]);
+
+	$diff = $NowSQL->diff($NowPHP);
+	if ($NowSQL < $NowPHP){
+		$Offset = -$diff->h;
+	}elseif ($NowSQL > $NowPHP){
+		$Offset = 24-$diff->h;
+	}else{
+		$Offset = 0;
+	}
+	return $Offset;
+}
+
+
+
 function GetServerTimeNow($TimeDifference){
 	// webERP DB and OpenCart DB triggers happens on server time, not local time,
 	// so when checking if a row has been updated or created in webERP or OC, we need to check the timestamp against ServerTime :-)
@@ -30,7 +52,7 @@ function CheckLastTimeRun($Script, $db){
 }
 
 function SetLastTimeRun($Script, $db){
-	$ServerNow = GetServerTimeNow(SERVER_TO_LOCAL_TIME_DIFFERENCE);
+	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
 	if ($Script == 'OpenCartToWeberp'){
 		$_SESSION['OpenCartToWeberp_LastRun'] = $ServerNow;
 		$sql = "UPDATE config
