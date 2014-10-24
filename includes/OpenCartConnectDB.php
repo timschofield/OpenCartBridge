@@ -40,7 +40,7 @@ function DB_query_oc($SQL, $ErrorMessage = '', $DebugMessage = '', $Transaction 
 		if ($TrapErrors) {
 			require_once($PathPrefix . 'includes/header.inc');
 		}
-		prnMsg($ErrorMessage . '<br />' . DB_error_msg(), 'error', _('Database Error') . ' ' . DB_error_no());
+		prnMsg($ErrorMessage . '<br />' . DB_error_msg($db_oc), 'error', _('Database Error') . ' ' . DB_error_no($db_oc));
 		if ($Debug == 1) {
 			prnMsg($DebugMessage . '<br />' . $SQL . '<br />', 'error', _('Database SQL Failure'));
 		}
@@ -48,7 +48,7 @@ function DB_query_oc($SQL, $ErrorMessage = '', $DebugMessage = '', $Transaction 
 			$SQL = 'rollback';
 			$Result = DB_query_oc($SQL);
 			if (DB_error_no() != 0) {
-				prnMsg(_('Error Rolling Back Transaction'), 'error', _('Database Rollback Error') . ' ' . DB_error_no());
+				prnMsg(_('Error Rolling Back Transaction'), 'error', _('Database Rollback Error') . ' ' . DB_error_no($db_oc));
 			} else {
 				prnMsg(_('Rolling Back Transaction OK'), 'error', _('Database Rollback Due to Error Above'));
 			}

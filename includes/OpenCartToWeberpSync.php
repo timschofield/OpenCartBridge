@@ -6,7 +6,7 @@ function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $Emai
 
 	// connect to opencart DB
 	DB_Txn_Begin($db);
-		
+
 	// check last time we run this script, so we know which records need to update from OC to webERP
 	$LastTimeRun = CheckLastTimeRun('OpenCartToWeberp', $db);
 	if ($ShowMessages){
@@ -14,7 +14,7 @@ function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $Emai
 		prnMsg('Server time now: ' . GetServerTimeNow($TimeDifference) ,'success');
 	}
 	if ($EmailText!=''){
-		$EmailText = $EmailText . 'OpenCart to webERP Sync was last run on: ' . $LastTimeRun .  "\n\n" . 
+		$EmailText = $EmailText . 'OpenCart to webERP Sync was last run on: ' . $LastTimeRun .  "\n\n" .
 					'Server time difference: ' . $TimeDifference . "\n\n" .
 					'Server time now: ' . GetServerTimeNow($TimeDifference) . "\n\n";
 	}
@@ -38,7 +38,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 	$Today = date('Y-m-d');
 
 	if ($EmailText !=''){
-		$EmailText = $EmailText . "Sync OpenCart Order Information --> Server Time = " . $ServerNow . " --> webERP Time = " .  date('d/M/Y H:i:s') . "\n\n"; 
+		$EmailText = $EmailText . "Sync OpenCart Order Information --> Server Time = " . $ServerNow . " --> webERP Time = " .  date('d/M/Y H:i:s') . "\n\n";
 	}
 
 	$SQL = "SELECT 	" . $oc_tableprefix . "order.order_id,
@@ -80,8 +80,8 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 				AND ( " . $oc_tableprefix . "order.date_added >= '" . $LastTimeRun . "'
 					OR " . $oc_tableprefix . "order.date_modified >= '" . $LastTimeRun . "')
 			ORDER BY " . $oc_tableprefix . "order.order_id";
-			
-	$result = DB_query($SQL, $db_oc);
+
+	$result = DB_query_oc($SQL);
 	if (DB_num_rows($result) != 0){
 		if ($ShowMessages){
 			echo '<p class="page_title_text" align="center"><strong>' . _('Orders from OpenCart') .'</strong></p>';
@@ -97,7 +97,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 								<th>' . _('Country') . '</th>
 								<th>' . _('Action') . '</th>
 							</tr>';
-							
+
 			$TableHeaderForItems = '<tr>
 								<th>' . _('OC #') . '</th>
 								<th>' . _('webERP #') . '</th>
@@ -134,13 +134,13 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 			$OpenCartOrderNumber = $myrow['order_id'];
 			$Salesman = OPENCART_DEFAULT_SALESMAN;
 			$Location = OPENCART_DEFAULT_LOCATION;
-			
+
 			if ($CustomerCode == 'WEB-KL-IDR'){
 				$Area = OPENCART_DEFAULT_AREA_INDONESIA;
 			}else{
 				$Area = OPENCART_DEFAULT_AREA;
 			}
-			
+
 			if ($CustomerCode != 'Error'){
 				// First process order header
 				if (DataExistsInWebERP($db, 'salesorders', 'customerref', $myrow['order_id'])){
@@ -217,7 +217,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 							<td>%s</td>
 							<td>%s</td>
 							<td>%s</td>
-							</tr>', 
+							</tr>',
 							$myrow['order_id'],
 							$OrderNo,
 							$ShippingName,
@@ -230,13 +230,13 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 							);
 				}
 				if ($EmailText !=''){
-					$EmailText = $EmailText . $myrow['order_id'] . 
-											  " = " . $OrderNo . 
+					$EmailText = $EmailText . $myrow['order_id'] .
+											  " = " . $OrderNo .
 											  " = " . $ShippingName .
 											  " = " . $myrow['email'] .
 											  " = " . $myrow['currency_code'] .
 											  " = " . $myrow['shipping_country'] .
-											  " --> " . $Action . "\n"; 
+											  " --> " . $Action . "\n";
 				}
 				// Now the items of the order
 				$SQLItemsOrder = "SELECT " . $oc_tableprefix . "order_product.model,
@@ -248,7 +248,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 								FROM " . $oc_tableprefix . "order_product
 								WHERE " . $oc_tableprefix . "order_product.order_id = " . $myrow['order_id'] . "
 								ORDER BY " . $oc_tableprefix . "order_product.order_product_id";
-				$resultItemsOrder = DB_query($SQLItemsOrder, $db_oc);
+				$resultItemsOrder = DB_query_oc($SQLItemsOrder);
 				$ItemsOrder = 0;
 				if ($ShowMessages){
 					echo '<table class="selection">';
@@ -261,7 +261,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 						$Action = "Update";
 					}else{
 						$Price = RoundPriceFromCart($myitems['price'] * $myrow['currency_value'],$myrow['currency_code']);
-						$sqlInsert = "INSERT INTO salesorderdetails 
+						$sqlInsert = "INSERT INTO salesorderdetails
 											(orderlineno,
 											orderno,
 											stkcode,
@@ -277,11 +277,11 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 											'" . $myrow['date_modified'] . "',
 											'0')"; // prices come already net from OpenCart
 						$resultInsert = DB_query($sqlInsert,$db,$InsertErrMsg,$DbgMsg,true);
-						
+
 						// prepare the RL for the items just ordered online
 						$sqlUpdate = "UPDATE locstock
-										SET reorderlevel = reorderlevel + " . $myitems['quantity'] . " 
-										WHERE stockid = '" . $myitems['model'] . "' 
+										SET reorderlevel = reorderlevel + " . $myitems['quantity'] . "
+										WHERE stockid = '" . $myitems['model'] . "'
 										AND loccode = '" . $Location . "'";
 						$resultUpdate = DB_query($sqlUpdate,$db,$UpdateErrMsg,$DbgMsg,true);
 						if ($ShowMessages){
@@ -292,7 +292,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 									<td>%s</td>
 									<td>%s</td>
 									<td>%s</td>
-									</tr>', 
+									</tr>',
 									$myrow['order_id'],
 									$OrderNo,
 									$ItemsOrder,
@@ -304,11 +304,11 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 						}
 						if ($EmailText !=''){
 							$EmailText = $EmailText . "            " . $ItemsOrder .
-													  " = " . $myitems['model'] . 
+													  " = " . $myitems['model'] .
 													  " = " . $ShippingName .
 													  " = " . $Price .
 													  " = " . $myitems['quantity'] .
-													  " --> " . $Action . "\n"; 
+													  " --> " . $Action . "\n";
 						}
 					}
 				}
@@ -321,7 +321,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 					if ($Action == "Update"){
 						$Action = "Update";
 					}else{
-						$sqlInsert = "INSERT INTO salesorderdetails 
+						$sqlInsert = "INSERT INTO salesorderdetails
 											(orderlineno,
 											orderno,
 											stkcode,
@@ -347,7 +347,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 									<td>%s</td>
 									<td>%s</td>
 									<td>%s</td>
-									</tr>', 
+									</tr>',
 									$myrow['order_id'],
 									$OrderNo,
 									$ItemsOrder,
@@ -359,10 +359,10 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 						}
 						if ($EmailText !=''){
 							$EmailText = $EmailText . "            " . $ItemsOrder .
-													  " = " . $CouponStockId . 
+													  " = " . $CouponStockId .
 													  " = " . $CouponDiscount .
 													  " = " . $CouponQty .
-													  " --> " . $Action . "\n"; 
+													  " --> " . $Action . "\n";
 						}
 					}
 				}
@@ -375,7 +375,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 					if ($Action == "Update"){
 						$Action = "Update";
 					}else{
-						$sqlInsert = "INSERT INTO salesorderdetails 
+						$sqlInsert = "INSERT INTO salesorderdetails
 											(orderlineno,
 											orderno,
 											stkcode,
@@ -401,7 +401,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 									<td>%s</td>
 									<td>%s</td>
 									<td>%s</td>
-									</tr>', 
+									</tr>',
 									$myrow['order_id'],
 									$OrderNo,
 									$ItemsOrder,
@@ -413,10 +413,10 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 						}
 						if ($EmailText !=''){
 							$EmailText = $EmailText . "            " . $ItemsOrder .
-													  " = " . $DiscountStockId . 
+													  " = " . $DiscountStockId .
 													  " = " . $OrderDiscount .
 													  " = " . $DiscountQty .
-													  " --> " . $Action . "\n"; 
+													  " --> " . $Action . "\n";
 						}
 					}
 				}
@@ -441,7 +441,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 		prnMsg(locale_number_format($i,0) . ' ' . _('Orders synchronized from OpenCart to webERP'),'success');
 	}
 	if ($EmailText !=''){
-		$EmailText = $EmailText . locale_number_format($i,0) . ' ' . _('Orders synchronized from OpenCart to webERP') . "\n\n"; 
+		$EmailText = $EmailText . locale_number_format($i,0) . ' ' . _('Orders synchronized from OpenCart to webERP') . "\n\n";
 	}
 	return $EmailText;
 }
@@ -451,7 +451,7 @@ function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, 
 	$Today = date('Y-m-d');
 
 	if ($EmailText !=''){
-		$EmailText = $EmailText . "Sync OpenCart Order Information --> Server Time = " . $ServerNow . " --> webERP Time = " .  date('d/M/Y H:i:s') . "\n\n"; 
+		$EmailText = $EmailText . "Sync OpenCart Order Information --> Server Time = " . $ServerNow . " --> webERP Time = " .  date('d/M/Y H:i:s') . "\n\n";
 	}
 
 	// Now deal with the Paypal payment/s of the order...
@@ -475,7 +475,7 @@ function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, 
 				" . $oc_tableprefix . "paypal_order_transaction.amount,
 				" . $oc_tableprefix . "paypal_order_transaction.debug_data,
 				" . $oc_tableprefix . "paypal_order_transaction.call_data
-		FROM " . $oc_tableprefix . "paypal_order, 
+		FROM " . $oc_tableprefix . "paypal_order,
 			 " . $oc_tableprefix . "paypal_order_transaction,
 			 " . $oc_tableprefix . "order,
 			 " . $oc_tableprefix . "customer
@@ -485,7 +485,7 @@ function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, 
 				AND ( " . $oc_tableprefix . "paypal_order.created >= '" . $LastTimeRun . "'
 					OR " . $oc_tableprefix . "paypal_order.modified >= '" . $LastTimeRun . "')
 		ORDER BY " . $oc_tableprefix . "paypal_order.paypal_order_id";
-	$result = DB_query($SQL, $db_oc);
+	$result = DB_query_oc($SQL);
 
 	if (DB_num_rows($result) != 0){
 		if ($ShowMessages){
@@ -525,7 +525,7 @@ function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, 
 				echo '<tr class="OddTableRows">';
 				$k = 1;
 			}
-			
+
 			/* FIELD MATCHING */
 			$CustomerCode = GetWeberpCustomerIdFromCurrency($myrow['ordercurrency'], $db);
 			$OrderNo = GetWeberpOrderNo($CustomerCode, $myrow['order_id'], $db);
@@ -553,11 +553,11 @@ function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, 
 
 			if ($PaymentOK){
 				$PeriodNo = GetPeriod(Date($_SESSION['DefaultDateFormat']),$db);
-				InsertCustomerReceipt($CustomerCode, $AmountPaid, $CurrencyPayment, $Rate, $GLAccount, $PaymentSystem, $TransactionID, $OrderNo, $PeriodNo, $db); 
+				InsertCustomerReceipt($CustomerCode, $AmountPaid, $CurrencyPayment, $Rate, $GLAccount, $PaymentSystem, $TransactionID, $OrderNo, $PeriodNo, $db);
 				TransactionCommissionGL($CustomerCode, $GLAccount, $GLCommissionAccount, $Commission, $CurrencyPayment, $Rate, $PaymentSystem, $TransactionID, $PeriodNo, $db);
 				ChangeOrderQuotationFlag($OrderNo, 0, $db); // it has been paid, so we consider it a firm order
 			}
-			
+
 			if ($ShowMessages){
 				printf('<td class="number">%s</td>
 						<td>%s</td>
@@ -574,7 +574,7 @@ function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, 
 						<td>%s</td>
 						<td>%s</td>
 						<td>%s</td>
-						</tr>', 
+						</tr>',
 						$myrow['customer_id'],
 						$myrow['email'],
 						$CustomerCode,
@@ -593,15 +593,15 @@ function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, 
 						);
 			}
 			if ($EmailText !=''){
-				$EmailText = $EmailText . $myrow['customer_id'] . 
-									      " = " . $myrow['email'] . 
-									      " = " . $CustomerCode . 
-									      " = " . $myrow['order_id'] . 
-									      " = " . $TotalOrder . 
-									      " = " . $myrow['ordercurrency'] . 
-									      " = " . $AmountPaid . 
-									      " = " . $myrow['payment_status'] . 
-										  " --> " . $Action . "\n"; 
+				$EmailText = $EmailText . $myrow['customer_id'] .
+									      " = " . $myrow['email'] .
+									      " = " . $CustomerCode .
+									      " = " . $myrow['order_id'] .
+									      " = " . $TotalOrder .
+									      " = " . $myrow['ordercurrency'] .
+									      " = " . $AmountPaid .
+									      " = " . $myrow['payment_status'] .
+										  " --> " . $Action . "\n";
 			}
 			$i++;
 		}
@@ -615,7 +615,7 @@ function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, 
 		prnMsg(locale_number_format($i,0) . ' ' . _('Payments synchronized from OpenCart to webERP'),'success');
 	}
 	if ($EmailText !=''){
-		$EmailText = $EmailText . locale_number_format($i,0) . ' ' . _('Payments synchronized from OpenCart to webERP') . "\n\n"; 
+		$EmailText = $EmailText . locale_number_format($i,0) . ' ' . _('Payments synchronized from OpenCart to webERP') . "\n\n";
 	}
 	return $EmailText;
 }
