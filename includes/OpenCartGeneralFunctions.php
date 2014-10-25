@@ -355,7 +355,7 @@ function UpdateDiscountInOpenCart($ProductId, $CustomerGroupId, $Quantity, $Prio
 					AND customer_group_id = '" . $CustomerGroupId ."'";
 
 		$ErrMsg =_('Could not get the product discount in OpenCart because');
-		$result = DB_query($SQL,$db,$ErrMsg);
+		$result = DB_query_oc($SQL,$ErrMsg);
 		if(DB_num_rows($result) != 0){
 			// There is already a discount, so we need to update it
 			$SQL = "UPDATE " . $oc_tableprefix . "product_discount
@@ -393,7 +393,7 @@ function UpdateDiscountInOpenCart($ProductId, $CustomerGroupId, $Quantity, $Prio
 					AND customer_group_id = '" . $CustomerGroupId ."'";
 
 		$ErrMsg =_('Could not get the product special in OpenCart because');
-		$result = DB_query($SQL,$db,$ErrMsg);
+		$result = DB_query_oc($SQL,$ErrMsg);
 		if(DB_num_rows($result) != 0){
 			// There is already a special, so we need to update it
 			$SQL = "UPDATE " . $oc_tableprefix . "product_special
