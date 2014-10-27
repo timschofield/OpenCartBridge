@@ -1,5 +1,5 @@
 <?php
-define("VERSIONFILE", "1.05"); 
+define("VERSIONFILE", "1.05");
 
 /* Session started in session.inc for password checking and authorisation level check
 config.php is in turn included in session.inc*/
@@ -15,7 +15,7 @@ include ('includes/OpenCartGeneralFunctions.php');
 include ('includes/WeberpToOpenCartSync.php');
 include ('includes/OpenCartConnectDB.php');
 
-WeberpToOpenCartDailySync(TRUE, $db, $db_oc, $oc_tableprefix);
+WeberpToOpenCartDailySync(TRUE, $oc_tableprefix);
 
 include ('includes/footer.inc');
 

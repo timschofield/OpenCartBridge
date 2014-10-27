@@ -1,14 +1,14 @@
 <?php
 
-function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $EmailText=''){
+function OpenCartToWeberpSync($ShowMessages, $oc_tableprefix, $EmailText=''){
 	$begintime = time_start();
-	$TimeDifference = Get_SQL_to_PHP_time_difference($db);
+	$TimeDifference = Get_SQL_to_PHP_time_difference();
 
 	// connect to opencart DB
-	DB_Txn_Begin($db);
+	DB_Txn_Begin();
 
 	// check last time we run this script, so we know which records need to update from OC to webERP
-	$LastTimeRun = CheckLastTimeRun('OpenCartToWeberp', $db);
+	$LastTimeRun = CheckLastTimeRun('OpenCartToWeberp');
 	if ($ShowMessages){
 		prnMsg('This script was last run on: ' . $LastTimeRun . ' Server time difference: ' . $TimeDifference,'success');
 		prnMsg('Server time now: ' . GetServerTimeNow($TimeDifference) ,'success');
@@ -19,22 +19,22 @@ function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $Emai
 					'Server time now: ' . GetServerTimeNow($TimeDifference) . "\n\n";
 	}
 	// update order information
-	$EmailText = SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
+	$EmailText = SyncOrderInformation($ShowMessages, $LastTimeRun, $oc_tableprefix, $EmailText);
 
 	// update payment information
-	$EmailText = SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
+	$EmailText = SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $oc_tableprefix, $EmailText);
 
 	// We are done!
-	SetLastTimeRun('OpenCartToWeberp', $db);
-	DB_Txn_Commit($db);
+	SetLastTimeRun('OpenCartToWeberp');
+	DB_Txn_Commit();
 	if ($ShowMessages){
 		time_finish($begintime);
 	}
 	return $EmailText;
 }
 
-function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText=''){
-	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
+function SyncOrderInformation($ShowMessages, $LastTimeRun, $oc_tableprefix, $EmailText=''){
+	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference());
 	$Today = date('Y-m-d');
 
 	if ($EmailText !=''){
@@ -121,16 +121,16 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 				echo '<tr class="EvenTableRows">';
 			}
 			/* FIELD MATCHING */
-			$CustomerCode = GetWeberpCustomerIdFromCurrency($myrow['currency_code'], $db);
+			$CustomerCode = GetWeberpCustomerIdFromCurrency($myrow['currency_code']);
 			$CustomerName = $myrow['customerfirstname'] . ' ' . $myrow['customerlastname'];
 			$PaymentName = $myrow['paymentfirstname'] . ' ' . $myrow['paymentlastname'];
 			$ShippingName = $myrow['shippingfirstname'] . ' ' . $myrow['shippinglastname'];
 			$SalesType = OPENCART_DEFAULT_CUSTOMER_SALES_TYPE;
 			$DefaultShipVia = GetWeberpShippingMethod($myrow['shipping_method']);
 			$Quotation = 1; // is NOT a firm order until we check the payments
-			$FreightCost = RoundPriceFromCart(GetTotalFromOrder("shipping", $myrow['order_id'], $db_oc, $oc_tableprefix) * $myrow['currency_value'],$myrow['currency_code']);
-			$CouponDiscount = RoundPriceFromCart(GetTotalFromOrder("coupon", $myrow['order_id'], $db_oc, $oc_tableprefix) * $myrow['currency_value'],$myrow['currency_code']);
-			$OrderDiscount = RoundPriceFromCart(GetTotalFromOrder("dco", $myrow['order_id'], $db_oc, $oc_tableprefix) * $myrow['currency_value'],$myrow['currency_code']);
+			$FreightCost = RoundPriceFromCart(GetTotalFromOrder("shipping", $myrow['order_id'], $oc_tableprefix) * $myrow['currency_value'],$myrow['currency_code']);
+			$CouponDiscount = RoundPriceFromCart(GetTotalFromOrder("coupon", $myrow['order_id'], $oc_tableprefix) * $myrow['currency_value'],$myrow['currency_code']);
+			$OrderDiscount = RoundPriceFromCart(GetTotalFromOrder("dco", $myrow['order_id'], $oc_tableprefix) * $myrow['currency_value'],$myrow['currency_code']);
 			$OpenCartOrderNumber = $myrow['order_id'];
 			$Salesman = OPENCART_DEFAULT_SALESMAN;
 			$Location = OPENCART_DEFAULT_LOCATION;
@@ -143,13 +143,13 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 
 			if ($CustomerCode != 'Error'){
 				// First process order header
-				if (DataExistsInWebERP($db, 'salesorders', 'customerref', $myrow['order_id'])){
+				if (DataExistsInWebERP('salesorders', 'customerref', $myrow['order_id'])){
 					$Action = "Update";
 				}else{
 					$Action = "Insert";
 					do {
 						$OrderNo = GetNextSequenceNo(30);
-						$CheckDoesntExistResult = DB_query("SELECT count(*) FROM salesorders WHERE orderno='" . $OrderNo . "'",$db);
+						$CheckDoesntExistResult = DB_query("SELECT count(*) FROM salesorders WHERE orderno='" . $OrderNo . "'");
 						$CheckDoesntExistRow = DB_fetch_row($CheckDoesntExistResult);
 					} while ($CheckDoesntExistRow[0]==1);
 
@@ -205,7 +205,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 									'" . $myrow['date_modified'] . "',
 									'" . $myrow['date_modified'] . "',
 									'" . $myrow['date_modified'] . "')";
-					$resultInsert = DB_query($sqlInsert,$db,$InsertErrMsg,$DbgMsg,true);
+					$resultInsert = DB_query($sqlInsert,$InsertErrMsg,$DbgMsg,true);
 				}
 				if ($ShowMessages){
 					printf('<td>%s</td>
@@ -276,14 +276,14 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 											'" . $myitems['quantity'] . "',
 											'" . $myrow['date_modified'] . "',
 											'0')"; // prices come already net from OpenCart
-						$resultInsert = DB_query($sqlInsert,$db,$InsertErrMsg,$DbgMsg,true);
+						$resultInsert = DB_query($sqlInsert,$InsertErrMsg,$DbgMsg,true);
 
 						// prepare the RL for the items just ordered online
 						$sqlUpdate = "UPDATE locstock
 										SET reorderlevel = reorderlevel + " . $myitems['quantity'] . "
 										WHERE stockid = '" . $myitems['model'] . "'
 										AND loccode = '" . $Location . "'";
-						$resultUpdate = DB_query($sqlUpdate,$db,$UpdateErrMsg,$DbgMsg,true);
+						$resultUpdate = DB_query($sqlUpdate,$UpdateErrMsg,$DbgMsg,true);
 						if ($ShowMessages){
 							printf('<td>%s</td>
 									<td>%s</td>
@@ -315,7 +315,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 				if ($CouponDiscount != 0){
 					$ItemsOrder++;
 					// we need to register the coupon use
-					$CouponCode = GetTotalTitleFromOrder("coupon", $myrow['order_id'], $db_oc, $oc_tableprefix);
+					$CouponCode = GetTotalTitleFromOrder("coupon", $myrow['order_id'], $oc_tableprefix);
 					$CouponStockId = OPENCART_ONLINE_COUPON_CODE;
 					$CouponQty = 1;
 					if ($Action == "Update"){
@@ -338,7 +338,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 											'" . $myrow['date_modified'] . "',
 											'" . $CouponCode . "',
 											'0')"; // prices come already net from OpenCart
-						$resultInsert = DB_query($sqlInsert,$db,$InsertErrMsg,$DbgMsg,true);
+						$resultInsert = DB_query($sqlInsert,$InsertErrMsg,$DbgMsg,true);
 						if ($ShowMessages){
 							printf('<td>%s</td>
 									<td>%s</td>
@@ -369,7 +369,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 				if ($OrderDiscount != 0){
 					$ItemsOrder++;
 					// we need to register the dco discount use (GENERAL ORDER DISCOUNT)
-					$DiscountCode = GetTotalTitleFromOrder("dco", $myrow['order_id'], $db_oc, $oc_tableprefix);
+					$DiscountCode = GetTotalTitleFromOrder("dco", $myrow['order_id'], $oc_tableprefix);
 					$DiscountStockId = OPENCART_ONLINE_ORDER_DISCOUNT_CODE;
 					$DiscountQty = 1;
 					if ($Action == "Update"){
@@ -392,7 +392,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 											'" . $myrow['date_modified'] . "',
 											'" . $DiscountCode . "',
 											'0')"; // prices come already net from OpenCart
-						$resultInsert = DB_query($sqlInsert,$db,$InsertErrMsg,$DbgMsg,true);
+						$resultInsert = DB_query($sqlInsert,$InsertErrMsg,$DbgMsg,true);
 						if ($ShowMessages){
 							printf('<td>%s</td>
 									<td>%s</td>
@@ -446,8 +446,8 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 	return $EmailText;
 }
 
-function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText=''){
-	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
+function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $oc_tableprefix, $EmailText=''){
+	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference());
 	$Today = date('Y-m-d');
 
 	if ($EmailText !=''){
@@ -527,17 +527,17 @@ function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, 
 			}
 
 			/* FIELD MATCHING */
-			$CustomerCode = GetWeberpCustomerIdFromCurrency($myrow['ordercurrency'], $db);
-			$OrderNo = GetWeberpOrderNo($CustomerCode, $myrow['order_id'], $db);
+			$CustomerCode = GetWeberpCustomerIdFromCurrency($myrow['ordercurrency']);
+			$OrderNo = GetWeberpOrderNo($CustomerCode, $myrow['order_id']);
 			$PaymentSystem = OPENCART_DEFAULT_PAYMENT_SYSTEM;
 			$CurrencyOrder = $myrow['ordercurrency'];
 			$CurrencyPayment = $myrow['paypalcurrency'];
 			$TotalOrder = round($myrow['ordertotal'] * $myrow['currency_value'],2); // from OC default currency to order and payment currency
-			$Rate = GetWeberpCurrencyRate($CurrencyOrder, $db);
+			$Rate = GetWeberpCurrencyRate($CurrencyOrder);
 			$AmountPaid = $myrow['paypaltotal'];
 			$TransactionID = $myrow['transaction_id'];
-			$GLAccount = GetWeberpGLAccountFromCurrency($CurrencyPayment, $db);
-			$GLCommissionAccount = GetWeberpGLCommissionAccountFromCurrency($CurrencyPayment, $db);
+			$GLAccount = GetWeberpGLAccountFromCurrency($CurrencyPayment);
+			$GLCommissionAccount = GetWeberpGLCommissionAccountFromCurrency($CurrencyPayment);
 			$PayPalResponseArray = GetPaypalReturnDataInArray($myrow['debug_data']);
 			$Commission = urldecode($PayPalResponseArray['PAYMENTINFO_0_FEEAMT']);
 
@@ -552,10 +552,10 @@ function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, 
 			}
 
 			if ($PaymentOK){
-				$PeriodNo = GetPeriod(Date($_SESSION['DefaultDateFormat']),$db);
-				InsertCustomerReceipt($CustomerCode, $AmountPaid, $CurrencyPayment, $Rate, $GLAccount, $PaymentSystem, $TransactionID, $OrderNo, $PeriodNo, $db);
-				TransactionCommissionGL($CustomerCode, $GLAccount, $GLCommissionAccount, $Commission, $CurrencyPayment, $Rate, $PaymentSystem, $TransactionID, $PeriodNo, $db);
-				ChangeOrderQuotationFlag($OrderNo, 0, $db); // it has been paid, so we consider it a firm order
+				$PeriodNo = GetPeriod(Date($_SESSION['DefaultDateFormat']));
+				InsertCustomerReceipt($CustomerCode, $AmountPaid, $CurrencyPayment, $Rate, $GLAccount, $PaymentSystem, $TransactionID, $OrderNo, $PeriodNo);
+				TransactionCommissionGL($CustomerCode, $GLAccount, $GLCommissionAccount, $Commission, $CurrencyPayment, $Rate, $PaymentSystem, $TransactionID, $PeriodNo);
+				ChangeOrderQuotationFlag($OrderNo, 0); // it has been paid, so we consider it a firm order
 			}
 
 			if ($ShowMessages){
