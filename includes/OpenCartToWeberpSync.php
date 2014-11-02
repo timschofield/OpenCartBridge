@@ -134,6 +134,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 			$OpenCartOrderNumber = $myrow['order_id'];
 			$Salesman = OPENCART_DEFAULT_SALESMAN;
 			$Location = OPENCART_DEFAULT_LOCATION;
+			$Comments =  str_replace("'", "", $myrow['comment']);
 
 			if ($CustomerCode == 'WEB-KL-IDR'){
 				$Area = OPENCART_DEFAULT_AREA_INDONESIA;
@@ -184,7 +185,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 									'" . $CustomerCode . "',
 									'" . $CustomerCode . "',
 									'" . $OpenCartOrderNumber ."',
-									'" . $myrow['comment'] ."',
+									'" . $Comments ."',
 									'" . $myrow['date_modified'] . "',
 									'" . $SalesType . "',
 									'" . $DefaultShipVia ."',
