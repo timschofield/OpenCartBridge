@@ -2,7 +2,6 @@
 
 function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $EmailText=''){
 	$begintime = time_start();
-	$TimeDifference = Get_SQL_to_PHP_time_difference($db);
 
 	// connect to opencart DB
 	DB_Txn_Begin($db);
@@ -10,13 +9,13 @@ function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $Emai
 	// check last time we run this script, so we know which records need to update from OC to webERP
 	$LastTimeRun = CheckLastTimeRun('OpenCartToWeberp', $db);
 	if ($ShowMessages){
+		$TimeDifference = Get_SQL_to_PHP_time_difference($db);
 		prnMsg('This script was last run on: ' . $LastTimeRun . ' Server time difference: ' . $TimeDifference,'success');
 		prnMsg('Server time now: ' . GetServerTimeNow($TimeDifference) ,'success');
 	}
 	if ($EmailText!=''){
-		$EmailText = $EmailText . 'OpenCart to webERP Sync was last run on: ' . $LastTimeRun .  "\n\n" .
-					'Server time difference: ' . $TimeDifference . "\n\n" .
-					'Server time now: ' . GetServerTimeNow($TimeDifference) . "\n\n";
+		$EmailText = $EmailText . 'OpenCart to webERP Sync was last run on: ' . $LastTimeRun .  "\n" .
+					PrintTimeInformation($db);
 	}
 	// update order information
 	$EmailText = SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
@@ -34,11 +33,9 @@ function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $Emai
 }
 
 function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText=''){
-	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
-	$Today = date('Y-m-d');
 
 	if ($EmailText !=''){
-		$EmailText = $EmailText . "Sync OpenCart Order Information --> Server Time = " . $ServerNow . " --> webERP Time = " .  date('d/M/Y H:i:s') . "\n\n";
+		$EmailText = $EmailText . "Sync OpenCart Order Information" . "\n" . PrintTimeInformation($db);
 	}
 
 	$SQL = "SELECT 	" . $oc_tableprefix . "order.order_id,
@@ -122,9 +119,9 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 			}
 			/* FIELD MATCHING */
 			$CustomerCode = GetWeberpCustomerIdFromCurrency($myrow['currency_code'], $db);
-			$CustomerName = $myrow['customerfirstname'] . ' ' . $myrow['customerlastname'];
-			$PaymentName = $myrow['paymentfirstname'] . ' ' . $myrow['paymentlastname'];
-			$ShippingName = $myrow['shippingfirstname'] . ' ' . $myrow['shippinglastname'];
+			$CustomerName = CapitalizeName($myrow['customerfirstname'] . ' ' . $myrow['customerlastname']);
+			$PaymentName = CapitalizeName($myrow['paymentfirstname'] . ' ' . $myrow['paymentlastname']);
+			$ShippingName = CapitalizeName($myrow['shippingfirstname'] . ' ' . $myrow['shippinglastname']);
 			$SalesType = OPENCART_DEFAULT_CUSTOMER_SALES_TYPE;
 			$DefaultShipVia = GetWeberpShippingMethod($myrow['shipping_method']);
 			$Quotation = 1; // is NOT a firm order until we check the payments
@@ -448,11 +445,9 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 }
 
 function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText=''){
-	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
-	$Today = date('Y-m-d');
 
 	if ($EmailText !=''){
-		$EmailText = $EmailText . "Sync OpenCart Order Information --> Server Time = " . $ServerNow . " --> webERP Time = " .  date('d/M/Y H:i:s') . "\n\n";
+		$EmailText = $EmailText . "Sync OpenCart Order Information" . "\n" . PrintTimeInformation($db);
 	}
 
 	// Now deal with the Paypal payment/s of the order...

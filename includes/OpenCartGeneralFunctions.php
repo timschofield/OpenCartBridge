@@ -20,8 +20,6 @@ function Get_SQL_to_PHP_time_difference($db) {
 	return $Offset;
 }
 
-
-
 function GetServerTimeNow($TimeDifference){
 	// webERP DB and OpenCart DB triggers happens on server time, not local time,
 	// so when checking if a row has been updated or created in webERP or OC, we need to check the timestamp against ServerTime :-)
@@ -30,6 +28,15 @@ function GetServerTimeNow($TimeDifference){
 	$ServerNow = date('Y-m-d H:i:s', strtotime( $Now . $TimeDifference . ' hours'));
 	return $ServerNow;
 }
+
+function PrintTimeInformation($db) {
+	$TimeDifference = Get_SQL_to_PHP_time_difference($db);
+	$Text = 'Server time difference: ' . $TimeDifference . "\n" .
+			'Server time now: ' . GetServerTimeNow($TimeDifference) . "\n".
+			'webERP time now: ' . date('d/M/Y H:i:s') . "\n\n";
+	return $Text;
+}
+
 
 function CheckLastTimeRun($Script, $db){
 	if ($Script == 'OpenCartToWeberp'){

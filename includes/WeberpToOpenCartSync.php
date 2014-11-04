@@ -2,20 +2,19 @@
 
 function WeberpToOpenCartDailySync($ShowMessages, $db, $db_oc, $oc_tableprefix, $EmailText=''){
 	$begintime = time_start();
-	$TimeDifference = Get_SQL_to_PHP_time_difference($db);
 
 	DB_Txn_Begin($db);
 
 	// check last time we run this script, so we know which records need to update from OC to webERP
 	$LastTimeRun = CheckLastTimeRun('WeberpToOpenCartDaily', $db);
 	if ($ShowMessages){
+		$TimeDifference = Get_SQL_to_PHP_time_difference($db);
 		prnMsg('This script was last run on: ' . $LastTimeRun . ' Server time difference: ' . $TimeDifference,'success');
 		prnMsg('Server time now: ' . GetServerTimeNow($TimeDifference) ,'success');
 	}
 	if ($EmailText!=''){
-		$EmailText = $EmailText . 'webERP to OpenCart Daily Sync was last run on: ' . $LastTimeRun .  "\n\n" .
-					'Server time difference: ' . $TimeDifference . "\n\n" .
-					'Server time now: ' . GetServerTimeNow($TimeDifference) . "\n\n";
+		$EmailText = $EmailText . 'webERP to OpenCart Daily Sync was last run on: ' . $LastTimeRun .  "\n" .
+					PrintTimeInformation($db);
 	}
 
 	// maintain outlet category in webERP
@@ -35,7 +34,7 @@ function WeberpToOpenCartDailySync($ShowMessages, $db, $db_oc, $oc_tableprefix, 
 	$EmailText = ActivateCategoryDependingOnQOH($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
 
 	// maintain the outlet category in a special way (both webERP and OC)
-	$EmailText = MaintainOpenCartOutletSalesCategories($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
+//	$EmailText = MaintainOpenCartOutletSalesCategories($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
 
 	// assign multiple images to products
 	$EmailText = SyncMultipleImages($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
@@ -55,20 +54,19 @@ function WeberpToOpenCartDailySync($ShowMessages, $db, $db_oc, $oc_tableprefix, 
 
 function WeberpToOpenCartHourlySync($ShowMessages, $db, $db_oc, $oc_tableprefix, $ControlTx = TRUE, $EmailText=''){
 	$begintime = time_start();
-	$TimeDifference = Get_SQL_to_PHP_time_difference($db);
 	if ($ControlTx){
 		DB_Txn_Begin($db);
 	}
 	// check last time we run this script, so we know which records need to update from OC to webERP
 	$LastTimeRun = CheckLastTimeRun('WeberpToOpenCartHourly', $db);
 	if ($ShowMessages){
+		$TimeDifference = Get_SQL_to_PHP_time_difference($db);
 		prnMsg('This script was last run on: ' . $LastTimeRun . ' Server time difference: ' . $TimeDifference,'success');
 		prnMsg('Server time now: ' . GetServerTimeNow($TimeDifference) ,'success');
 	}
 	if (($EmailText!='') AND ControlTx){
-		$EmailText = $EmailText . 'webERP to OpenCart Hourly Sync was last run on: ' . $LastTimeRun .  "\n\n" .
-					'Server time difference: ' . $TimeDifference . "\n\n" .
-					'Server time now: ' . GetServerTimeNow($TimeDifference) . "\n\n";
+		$EmailText = $EmailText . 'webERP to OpenCart Hourly Sync was last run on: ' . $LastTimeRun .  "\n" .
+					PrintTimeInformation($db);
 	}
 	// update product basic information
 	$EmailText = SyncProductBasicInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
@@ -101,10 +99,10 @@ function SyncProductBasicInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $
 	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
 	$Today = date('Y-m-d');
 
-/*	if ($EmailText !=''){
-		$EmailText = $EmailText . "Basic Product Information --> Server Time = " . $ServerNow . " --> webERP Time = " .  date('d/M/Y H:i:s') . "\n\n";
+	if ($EmailText !=''){
+		$EmailText = $EmailText . "Basic Product Information" . "\n" . PrintTimeInformation($db);
 	}
-*/
+
 	/* let's get the webERP price list and base currency for the online customer */
 	list ($PriceList, $Currency) = GetOnlinePriceList($db);
 
@@ -419,13 +417,11 @@ function SyncProductBasicInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $
 }
 
 function SyncProductSalesCategories($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText= ''){
-	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
-	$Today = date('Y-m-d');
 
-/*	if ($EmailText !=''){
-		$EmailText = $EmailText . "Product - Sales Categories --> Server Time = " . $ServerNow . " --> webERP Time = " .  date('d/M/Y H:i:s') . "\n\n";
+	if ($EmailText !=''){
+		$EmailText = $EmailText . "Product - Sales Categories" . "\n" . PrintTimeInformation($db);
 	}
-*/
+
 	/* Look for the late modifications of salescatprod table in webERP */
 	$SQL = "SELECT salescatprod.salescatid,
 				salescatprod.stockid,
@@ -472,24 +468,24 @@ function SyncProductSalesCategories($ShowMessages, $LastTimeRun, $db, $db_oc, $o
 
 			// Let's get the OpenCart primary key for product
 			$ProductId = GetOpenCartProductId($Model, $db_oc, $oc_tableprefix);
+			
+			// Delete the current product_to_category, as we now only accept 1 product_to_category in website
+			$Action = "Delete";
+			$sqlDelete = "DELETE FROM " . $oc_tableprefix . "product_to_category 
+						WHERE product_id = '" . $ProductId . "'";
+			$resultDelete = DB_query_oc($sqlDelete,$UpdateErrMsg,$DbgMsg,true);
 
-			if (DataExistsInOpenCart($db_oc, $oc_tableprefix . 'product_to_category', 'product_id', $ProductId, 'category_id', $SalesCatId)){
-				$Action = "Update";
-				$sqlUpdate = "UPDATE " . $oc_tableprefix . "product SET
-								manufacturer_id = '" . $ManufacturerId . "'
-							WHERE product_id = '" . $ProductId . "'";
-				$resultUpdate = DB_query_oc($sqlUpdate,$UpdateErrMsg,$DbgMsg,true);
-			}else{
-				$Action = "Insert";
-				$sqlInsert = "INSERT INTO " . $oc_tableprefix . "product_to_category
-								(product_id,
-								category_id)
-							VALUES
-								('" . $ProductId . "',
-								'" . $SalesCatId . "'
-								)";
-				$resultInsert = DB_query_oc($sqlInsert,$InsertErrMsg,$DbgMsg,true);
-			}
+			// Insert the new record
+			$Action = "Insert";
+			$sqlInsert = "INSERT INTO " . $oc_tableprefix . "product_to_category
+							(product_id,
+							category_id)
+						VALUES
+							('" . $ProductId . "',
+							'" . $SalesCatId . "'
+							)";
+			$resultInsert = DB_query_oc($sqlInsert,$InsertErrMsg,$DbgMsg,true);
+
 			if ($ShowMessages){
 				$k = StartEvenOrOddRow($k);
 				printf('<td>%s</td>
@@ -526,13 +522,11 @@ function SyncProductSalesCategories($ShowMessages, $LastTimeRun, $db, $db_oc, $o
 }
 
 function SyncProductPrices($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText = ''){
-	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
-	$Today = date('Y-m-d');
 
-/*	if ($EmailText !=''){
-		$EmailText = $EmailText . "Product Price Sync --> Server Time = " . $ServerNow . " --> webERP Time = " .  date('d/M/Y H:i:s') . "\n\n";
+	if ($EmailText !=''){
+		$EmailText = $EmailText . "Product Price Sync" . "\n" . PrintTimeInformation($db);
 	}
-*/
+
 	/* let's get the webERP price list and base currency for the online customer */
 	list ($PriceList, $Currency) = GetOnlinePriceList($db);
 
@@ -620,13 +614,11 @@ function SyncProductPrices($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tablepr
 }
 
 function SyncProductQOH($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText=''){
-	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
-	$Today = date('Y-m-d');
 
-/*	if ($EmailText !=''){
-		$EmailText = $EmailText . "Sync Product QOH --> Server Time = " . $ServerNow . " --> webERP Time = " .  date('d/M/Y H:i:s') . "\n\n";
+	if ($EmailText !=''){
+		$EmailText = $EmailText . "Sync Product QOH" . "\n" . PrintTimeInformation($db);
 	}
-*/
+
 	/* let's get the webERP price list and base currency for the online customer */
 	list ($PriceList, $Currency) = GetOnlinePriceList($db);
 
@@ -713,13 +705,11 @@ function SyncProductQOH($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefi
 }
 
 function CleanDuplicatedUrlAlias($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText = ''){
-	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
-	$Today = date('Y-m-d');
 
-/*	if ($EmailText !=''){
-		$EmailText = $EmailText . "Clean Duplicated URL Alias --> Server Time = " . $ServerNow . " --> webERP Time = " .  date('d/M/Y H:i:s') . "\n\n";
+	if ($EmailText !=''){
+		$EmailText = $EmailText . "Clean Duplicated URL Alias" . "\n" . PrintTimeInformation($db);
 	}
-*/
+
 	$SQL = "SELECT 	" . $oc_tableprefix . "url_alias.url_alias_id,
 				" . $oc_tableprefix . "url_alias.query,
 				" . $oc_tableprefix . "url_alias.keyword
@@ -822,6 +812,9 @@ function CleanDuplicatedUrlAlias($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_t
 
 function SyncSalesCategories($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText= ''){
 	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
+	if ($EmailText !=''){
+		$EmailText = $EmailText . "Sync Sales Categories" . "\n" . PrintTimeInformation($db);
+	}
 
 	$SQL = "SELECT salescatid,
 				parentcatid,
@@ -981,6 +974,9 @@ function SyncSalesCategories($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_table
 
 function SyncFeaturedList($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText= ''){
 
+	if ($EmailText !=''){
+		$EmailText = $EmailText . "Clean Duplicated URL Alias" . "\n" . PrintTimeInformation($db);
+	}
 	/* Let's get the ID for the list of featured products for featured module
 	   we will need it later on to save the results in the appropiate setting */
 	$SettingId = GetOpenCartSettingId(0,"featured", "featured_product", $db_oc, $oc_tableprefix);
@@ -1055,6 +1051,10 @@ function SyncFeaturedList($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tablepre
 }
 
 function ActivateCategoryDependingOnQOH($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText= ''){
+
+	if ($EmailText !=''){
+		$EmailText = $EmailText . "Activate category Depending on QOH" . "\n" . PrintTimeInformation($db);
+	}
 	$SQL = "SELECT salescatid,
 				parentcatid,
 				salescatname,
@@ -1117,10 +1117,10 @@ function ActivateCategoryDependingOnQOH($ShowMessages, $LastTimeRun, $db, $db_oc
 						$Action
 						);
 			}
-/*			if ($EmailText !=''){
+			if ($EmailText !=''){
 				$EmailText = $EmailText . $CategoryName . " --> " . locale_number_format($CategoryQOH,0) . " --> " . $Action . "\n";
 			}
-*/			$i++;
+			$i++;
 		}
 		if ($ShowMessages){
 			echo '</table>
@@ -1140,16 +1140,6 @@ function ActivateCategoryDependingOnQOH($ShowMessages, $LastTimeRun, $db, $db_oc
 function MaintainOpenCartOutletSalesCategories($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText = ''){
 
 	/* Look for all products in OC marked as OUTLET and "something else"*/
-/*	$SQL = "SELECT " . $oc_tableprefix . "product.product_id,
-				   " . $oc_tableprefix . "product.model
-			FROM " . $oc_tableprefix . "product_to_category ,
-				 " . $oc_tableprefix . "product
-			WHERE " . $oc_tableprefix . "product.product_id = " . $oc_tableprefix . "product_to_category.product_id
-				AND category_id NOT IN (" . OPENCART_OUTLET_CATEGORIES . ")
-				AND " . $oc_tableprefix . "product.product_id IN (SELECT product_id
-															FROM  " . $oc_tableprefix . "product_to_category
-															WHERE  category_id IN (" . OPENCART_OUTLET_CATEGORIES . "))";
-*/
 	$SQL = "SELECT " . $oc_tableprefix . "product.product_id,
 				   " . $oc_tableprefix . "product.model
 			FROM " . $oc_tableprefix . "product_to_category ,
@@ -1269,8 +1259,10 @@ function MaintainWeberpOutletSalesCategories($ShowMessages, $LastTimeRun, $db, $
 }
 
 function SyncMultipleImages($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText = ''){
-	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
-	$Today = date('Y-m-d');
+
+	if ($EmailText !=''){
+		$EmailText = $EmailText . "Sync Multiple Images" . "\n" . PrintTimeInformation($db);
+	}
 
 	if ($ShowMessages){
 		echo '<p class="page_title_text" align="center"><strong>' . _('Synchronize multiple images per item') .'</strong></p>';
@@ -1338,7 +1330,10 @@ function SyncMultipleImages($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tablep
 }
 
 function SyncRelatedItems($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText = ''){
-	$ServerNow = GetServerTimeNow(Get_SQL_to_PHP_time_difference($db));
+
+	if ($EmailText !=''){
+		$EmailText = $EmailText . "Sync Related Items" . "\n" . PrintTimeInformation($db);
+	}
 
 	$SQL = "SELECT stockid,
 				related
