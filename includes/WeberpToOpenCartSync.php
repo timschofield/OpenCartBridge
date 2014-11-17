@@ -223,6 +223,7 @@ function SyncProductBasicInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $
 								mpn = '" . $MPN . "',
 								image = '" . $Image . "',
 								status = '" . $Status . "',
+                                quantity = '" . $Quantity . "',
 								gpf_status = '" . $GPFStatus . "',
 								google_product_category = '" . $GoogleProductCategory . "',
 								brand = '" . $GoogleBrand . "',
@@ -1059,7 +1060,7 @@ function ActivateCategoryDependingOnQOH($ShowMessages, $LastTimeRun, $db, $db_oc
 				parentcatid,
 				salescatname,
 				active,
-				(SELECT COUNT(locstock.quantity)
+                (SELECT SUM(locstock.quantity)
 					FROM salescatprod,locstock
 					WHERE salescat.salescatid = salescatprod.salescatid
 						AND salescatprod.stockid = locstock.stockid
@@ -1094,13 +1095,21 @@ function ActivateCategoryDependingOnQOH($ShowMessages, $LastTimeRun, $db, $db_oc
 			$CategoryName = $myrow['salescatname'];
 			$CategoryQOH = $myrow['qoh'];
 
-			if ($CategoryQOH > 0){
-				$Status = 1;
-				$Action = "Active";
-			}else{
-				$Status = 0;
-				$Action = "Inactive QOH = 0";
-			}
+            if (isset($myrow['qoh'])){
+                if ($CategoryQOH > 0){
+                    $CategoryQOH = $myrow['qoh'];
+                    $Status = 1;
+                    $Action = "Active";
+                }else{
+                    $CategoryQOH = 0;
+                    $Status = 0;
+                    $Action = "Inactive QOH = 0";
+                }
+            }else{
+                $CategoryQOH = 0;
+                $Status = 0;
+                $Action = "Inactive QOH = 0";
+            }
 
 			$sqlUpdate = "UPDATE " . $oc_tableprefix . "category SET
 								status = '" . $Status . "'
