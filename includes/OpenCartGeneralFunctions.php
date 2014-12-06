@@ -291,14 +291,13 @@ function GetOnlineQOH($StockId, $db){
 }
 
 function GetOnlinePriceList($db){
-	$SQL = "SELECT debtorsmaster.currcode,
-				debtorsmaster.salestype
+	$SQL = "SELECT debtorsmaster.salestype
 			FROM debtorsmaster
-			WHERE debtorsmaster.debtorno = '" . $_SESSION['ShopDebtorNo'] . "'";
-	$result = DB_query($SQL, $db);
+			WHERE debtorsmaster.debtorno = '" . GetWeberpCustomerIdFromCurrency(OPENCART_DEFAULT_CURRENCY, $db) . "'";
+	$result = DB_query($SQL);
 	if(DB_num_rows($result) != 0){
 		$myrow = DB_fetch_array($result);
-		return array($myrow['salestype'], $myrow['currcode']);
+		return array($myrow['salestype'], OPENCART_DEFAULT_CURRENCY);
 	}else{
 		return array(0,0);
 	}
