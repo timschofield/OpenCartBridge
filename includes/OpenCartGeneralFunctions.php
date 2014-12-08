@@ -356,7 +356,7 @@ function UpdateDiscountInOpenCart($ProductId, $CustomerGroupId, $Quantity, $Prio
 		/* use the table product_discount */
 		$SQL = "SELECT product_discount_id
 				FROM " . $oc_tableprefix . "product_discount
-				WHERE productid = '" . $ProductId . "'
+				WHERE product_id = '" . $ProductId . "'
 					AND quantity = '" . $Quantity . "'
 					AND customer_group_id = '" . $CustomerGroupId ."'";
 
@@ -395,7 +395,7 @@ function UpdateDiscountInOpenCart($ProductId, $CustomerGroupId, $Quantity, $Prio
 		/* use the table product_special */
 		$SQL = "SELECT product_special_id
 				FROM " . $oc_tableprefix . "product_special
-				WHERE productid = '" . $ProductId . "'
+				WHERE product_id = '" . $ProductId . "'
 					AND customer_group_id = '" . $CustomerGroupId ."'";
 
 		$ErrMsg =_('Could not get the product special in OpenCart because');
