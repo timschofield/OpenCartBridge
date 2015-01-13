@@ -8,8 +8,8 @@ function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $Emai
 
 	// check last time we run this script, so we know which records need to update from OC to webERP
 	$LastTimeRun = CheckLastTimeRun('OpenCartToWeberp', $db);
+	$TimeDifference = Get_SQL_to_PHP_time_difference($db);
 	if ($ShowMessages){
-		$TimeDifference = Get_SQL_to_PHP_time_difference($db);
 		prnMsg('This script was last run on: ' . $LastTimeRun . ' Server time difference: ' . $TimeDifference,'success');
 		prnMsg('Server time now: ' . GetServerTimeNow($TimeDifference) ,'success');
 	}
@@ -18,10 +18,10 @@ function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $Emai
 					PrintTimeInformation($db);
 	}
 	// update order information
-	$EmailText = SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
+	$EmailText = SyncOrderInformation($TimeDifference, $ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
 
 	// update payment information
-	$EmailText = SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
+	$EmailText = SyncPaypalPaymentInformation($TimeDifference, $ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText);
 
 	// We are done!
 	SetLastTimeRun('OpenCartToWeberp', $db);
@@ -32,7 +32,7 @@ function OpenCartToWeberpSync($ShowMessages, $db, $db_oc, $oc_tableprefix, $Emai
 	return $EmailText;
 }
 
-function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText=''){
+function SyncOrderInformation($TimeDifference, $ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText=''){
 
 	if ($EmailText !=''){
 		$EmailText = $EmailText . "Sync OpenCart Order Information" . "\n" . PrintTimeInformation($db);
@@ -132,6 +132,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 			$Salesman = OPENCART_DEFAULT_SALESMAN;
 			$Location = OPENCART_DEFAULT_LOCATION;
 			$Comments =  str_replace("'", "", $myrow['comment']);
+			$WebERPDateOrder = date('Y-m-d H:i:s', strtotime( $myrow['date_modified'] . -$TimeDifference . ' hours'));
 
 			if ($CustomerCode == 'WEB-KL-IDR'){
 				$Area = OPENCART_DEFAULT_AREA_INDONESIA;
@@ -183,7 +184,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 									'" . $CustomerCode . "',
 									'" . $OpenCartOrderNumber ."',
 									'" . $Comments ."',
-									'" . $myrow['date_modified'] . "',
+									'" . $WebERPDateOrder . "',
 									'" . $SalesType . "',
 									'" . $DefaultShipVia ."',
 									'" . $ShippingName . "',
@@ -444,7 +445,7 @@ function SyncOrderInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tabl
 	return $EmailText;
 }
 
-function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText=''){
+function SyncPaypalPaymentInformation($TimeDifference, $ShowMessages, $LastTimeRun, $db, $db_oc, $oc_tableprefix, $EmailText=''){
 
 	if ($EmailText !=''){
 		$EmailText = $EmailText . "Sync OpenCart Order Information" . "\n" . PrintTimeInformation($db);
@@ -536,7 +537,7 @@ function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, 
 			$GLCommissionAccount = GetWeberpGLCommissionAccountFromCurrency($CurrencyPayment, $db);
 			$PayPalResponseArray = GetPaypalReturnDataInArray($myrow['debug_data']);
 			$Commission = urldecode($PayPalResponseArray['PAYMENTINFO_0_FEEAMT']);
-
+			$WebERPDateOrder = date('Y-m-d H:i:s', strtotime( $myrow['created'] . -$TimeDifference . ' hours'));
 
 			if (($myrow['paypalcurrency'] == $myrow['ordercurrency']) AND ($myrow['pending_reason'] == 'None')) {
 				// order currency and Paypal currency are the same
@@ -583,7 +584,7 @@ function SyncPaypalPaymentInformation($ShowMessages, $LastTimeRun, $db, $db_oc, 
 						$TransactionID,
 						$myrow['amount'],
 						$Commission,
-						$myrow['created'],
+						$WebERPDateOrder,
 						$myrow['payment_status'],
 						$myrow['pending_reason']
 						);
